@@ -1,15 +1,16 @@
 import { useState, useRef, useEffect } from 'react';
 import { MapPin, ChevronDown } from 'lucide-react';
-import { countries } from '@/data/mockData';
+import { countries as defaultCountries } from '@/data/mockData';
 
 interface CountrySelectProps {
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
   excludeCountry?: string;
+  countries?: string[];
 }
 
-const CountrySelect = ({ value, onChange, placeholder = 'Select a country', excludeCountry }: CountrySelectProps) => {
+const CountrySelect = ({ value, onChange, placeholder = 'Select a country', excludeCountry, countries = defaultCountries }: CountrySelectProps) => {
   const [search, setSearch] = useState('');
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);

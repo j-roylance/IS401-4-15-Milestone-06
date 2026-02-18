@@ -1,15 +1,16 @@
 import { useState, useRef, useEffect } from 'react';
 import { Search } from 'lucide-react';
-import { drugs } from '@/data/mockData';
+import { drugs as defaultDrugs } from '@/data/mockData';
 import { Input } from '@/components/ui/input';
 
 interface DrugSearchInputProps {
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
+  drugs?: string[];
 }
 
-const DrugSearchInput = ({ value, onChange, placeholder = 'Type a medicine name...' }: DrugSearchInputProps) => {
+const DrugSearchInput = ({ value, onChange, placeholder = 'Type a medicine name...', drugs = defaultDrugs }: DrugSearchInputProps) => {
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -23,7 +24,7 @@ const DrugSearchInput = ({ value, onChange, placeholder = 'Type a medicine name.
       setSuggestions([]);
       setOpen(false);
     }
-  }, [value]);
+  }, [value, drugs]);
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -44,17 +45,23 @@ const DrugSearchInput = ({ value, onChange, placeholder = 'Type a medicine name.
           className="pl-12 h-14 text-lg glass-card border-border focus:glow-border focus:border-primary/50 bg-secondary/50"
         />
       </div>
-      {open && (
+      {(open || (value.length > 0 && suggestions.length === 0)) && (
         <div className="absolute z-50 w-full mt-2 glass-card rounded-lg overflow-hidden shadow-2xl max-h-60 overflow-y-auto">
-          {suggestions.map(s => (
-            <button
-              key={s}
-              className="w-full text-left px-4 py-3 hover:bg-primary/10 text-foreground transition-colors"
-              onClick={() => { onChange(s); setOpen(false); }}
-            >
-              {s}
-            </button>
-          ))}
+          {suggestions.length > 0 ? (
+            suggestions.map(s => (
+              <button
+                key={s}
+                className="w-full text-left px-4 py-3 hover:bg-primary/10 text-foreground transition-colors"
+                onClick={() => { onChange(s); setOpen(false); }}
+              >
+                {s}
+              </button>
+            ))
+          ) : (
+            <div className="px-4 py-3 text-muted-foreground text-sm">
+              Sorry, we don&apos;t have that medicine on record. Please select from the list above or try another name.
+            </div>
+          )}
         </div>
       )}
     </div>

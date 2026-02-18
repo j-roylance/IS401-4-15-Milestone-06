@@ -1,13 +1,31 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { ArrowRight, AlertTriangle, Shield } from 'lucide-react';
+import { ArrowRight, AlertTriangle, Shield, Loader2 } from 'lucide-react';
 import FlowLayout from '@/components/FlowLayout';
 import StepProgress from '@/components/StepProgress';
 import DrugSearchInput from '@/components/DrugSearchInput';
 import CountrySelect from '@/components/CountrySelect';
 import ExpandableSection from '@/components/ExpandableSection';
 import { Button } from '@/components/ui/button';
-import { getDrugEquivalent, type DrugEquivalent as DrugEquivType } from '@/data/mockData';
+import type { DrugEquivalent as DrugEquivType } from '@/data/mockData';
+
+const API_BASE = import.meta.env.DEV ? '' : (import.meta.env.VITE_API_URL ?? '');
+
+async function fetchDrugEquivalent(drug: string, fromCountry: string, toCountry: string): Promise<DrugEquivType & { viewCount?: number }> {
+  const res = await fetch(`${API_BASE}/api/drug-equivalent`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ drug, fromCountry, toCountry }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    const msg = res.status === 404
+      ? "Sorry, we don't have that medicine on record, or we don't have an equivalent for the selected countries."
+      : 'Could not fetch equivalent. Is the backend running?';
+    throw new Error(msg);
+  }
+  return data;
+}
 
 const strengthColors: Record<string, string> = {
   Stronger: 'bg-destructive/20 text-destructive',
@@ -16,16 +34,35 @@ const strengthColors: Record<string, string> = {
 };
 
 const DrugEquivalent = () => {
+  const [medicines, setMedicines] = useState<string[]>([]);
   const [step, setStep] = useState(0);
   const [drug, setDrug] = useState('');
+
+  useEffect(() => {
+    fetch(`${API_BASE}/api/medicines`)
+      .then(res => res.ok ? res.json() : Promise.resolve({ medicines: [] }))
+      .then(data => setMedicines(data.medicines || []))
+      .catch(() => setMedicines([]));
+  }, []);
   const [fromCountry, setFromCountry] = useState('');
   const [toCountry, setToCountry] = useState('');
-  const [result, setResult] = useState<DrugEquivType | null>(null);
+  const [result, setResult] = useState<(DrugEquivType & { viewCount?: number }) | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (step === 2) {
-      setResult(getDrugEquivalent(drug, fromCountry, toCountry));
-      setStep(3);
+      setLoading(true);
+      setError(null);
+      try {
+        const data = await fetchDrugEquivalent(drug, fromCountry, toCountry);
+        setResult(data);
+        setStep(3);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Could not fetch equivalent. Is the backend running?');
+      } finally {
+        setLoading(false);
+      }
     } else {
       setStep(step + 1);
     }
@@ -55,7 +92,7 @@ const DrugEquivalent = () => {
 
       {step === 0 && (
         <div className="space-y-6">
-          <DrugSearchInput value={drug} onChange={setDrug} />
+          <DrugSearchInput value={drug} onChange={setDrug} drugs={medicines.length > 0 ? medicines : undefined} />
           <Button onClick={handleNext} disabled={!canProceed} className="w-full h-12 text-base gap-2">
             Next <ArrowRight className="w-4 h-4" />
           </Button>
@@ -82,8 +119,10 @@ const DrugEquivalent = () => {
           {toCountry === fromCountry && toCountry && (
             <p className="text-destructive text-sm">Please select a different country</p>
           )}
-          <Button onClick={handleNext} disabled={!canProceed || toCountry === fromCountry} className="w-full h-12 text-base gap-2">
-            Find Equivalent <ArrowRight className="w-4 h-4" />
+          {error && <p className="text-destructive text-sm">{error}</p>}
+          <Button onClick={handleNext} disabled={!canProceed || toCountry === fromCountry || loading} className="w-full h-12 text-base gap-2">
+            {loading ? 'Finding...' : 'Find Equivalent'}
+            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <ArrowRight className="w-4 h-4" />}
           </Button>
         </div>
       )}
@@ -104,9 +143,14 @@ const DrugEquivalent = () => {
                   <h2 className="text-xl font-semibold text-foreground">{result.equivalentName}</h2>
                   <p className="text-sm text-muted-foreground">Equivalent for {result.name}</p>
                 </div>
-                <span className={`px-3 py-1 rounded-full text-xs font-medium ${strengthColors[result.strength]}`}>
-                  {result.strength}
-                </span>
+                <div className="flex flex-col items-end gap-1">
+                  <span className={`px-3 py-1 rounded-full text-xs font-medium ${strengthColors[result.strength]}`}>
+                    {result.strength}
+                  </span>
+                  {result.viewCount != null && (
+                    <span className="text-xs text-muted-foreground">Viewed {result.viewCount} time{result.viewCount !== 1 ? 's' : ''}</span>
+                  )}
+                </div>
               </div>
 
               <div className="flex items-start gap-2 p-3 rounded-lg bg-secondary/50">

@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
 import { Search, Stethoscope, Pill } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import AuthBar from '@/components/AuthBar';
 
 const cards = [
   {
@@ -27,7 +28,10 @@ const Index = () => {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center px-4 py-12">
+    <div className="min-h-screen flex flex-col items-center px-4 py-12">
+      <div className="w-full max-w-4xl flex justify-end mb-4">
+        <AuthBar />
+      </div>
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
