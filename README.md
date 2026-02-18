@@ -171,5 +171,5 @@ The **Find Equivalent** button demonstrates the full vertical slice: frontend â†
 
 **For Grading Purposes**
 - Database querying: drug equivalent search
-- Database updating: login (authenticates against `user` table), Find Equivalent (updates `view_count`)
+- Database updating: login (authenticates against `user` table), Find Equivalent (updates `view_count`), register (creates user), clicking on the user profile allows updating of user data.
 - Dummy account: username: demo, password: demo123 
